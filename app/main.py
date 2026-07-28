@@ -19,14 +19,16 @@ app = FastAPI(
 
 # CORS — orígenes permitidos (separados por coma en la variable de entorno)
 _raw_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:4200")
-ALLOWED_ORIGINS = [o.strip() for o in _raw_origins.split(",")]
+ALLOWED_ORIGINS = [o.strip().rstrip("/") for o in _raw_origins.split(",") if o.strip()]
+print(f"[CORS] ALLOWED_ORIGINS = {ALLOWED_ORIGINS}", flush=True)
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 # Crear tablas automáticamente al iniciar
