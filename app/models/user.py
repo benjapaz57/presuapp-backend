@@ -18,6 +18,7 @@ class User(Base):
     city = Column(String, nullable=True)
     pdf_color = Column(String, nullable=True, default="#4f46e5")
     plan = Column(String, nullable=False, default="free")
+    mp_subscription_id = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     items = relationship("Item", back_populates="user", cascade="all, delete-orphan")
