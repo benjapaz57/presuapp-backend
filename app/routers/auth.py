@@ -1,20 +1,34 @@
 import os
 import io
 import uuid
+from datetime import timedelta
 import cloudinary
 import cloudinary.uploader
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
+from pydantic import BaseModel
+from jose import JWTError, jwt
 from sqlalchemy.orm import Session
 from PIL import Image
 from app.database import get_db
 from app.models.user import User
 from app.schemas.user import UserCreate, UserResponse, LoginRequest, Token, UserUpdate
-from app.services.auth import hash_password, verify_password, create_access_token, get_current_user
+from app.services.auth import hash_password, verify_password, create_access_token, get_current_user, SECRET_KEY, ALGORITHM
+from app.services.email import send_password_reset, send_welcome
 
 router = APIRouter(prefix="/auth", tags=["Autenticación"])
 
 ALLOWED_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp"}
 LOGO_SIZE = (200, 200)
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:4200")
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: str
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str
 
 # Configurar Cloudinary
 cloudinary.config(
@@ -53,7 +67,44 @@ def register(data: UserCreate, db: Session = Depends(get_db)):
     db.add(user)
     db.commit()
     db.refresh(user)
+    send_welcome(user.email, user.name)
     return user
+
+
+@router.post("/forgot-password", status_code=200)
+def forgot_password(data: ForgotPasswordRequest, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.email == data.email).first()
+    # Siempre respondemos OK para no revelar si el email existe o no
+    if user:
+        token = create_access_token(
+            {"sub": str(user.id), "type": "reset"},
+            expires_delta=timedelta(hours=1),
+        )
+        reset_url = f"{FRONTEND_URL}/reset-password?token={token}"
+        send_password_reset(user.email, reset_url)
+    return {"message": "Si el email existe, recibirás un link para restablecer tu contraseña."}
+
+
+@router.post("/reset-password", status_code=200)
+def reset_password(data: ResetPasswordRequest, db: Session = Depends(get_db)):
+    try:
+        payload = jwt.decode(data.token, SECRET_KEY, algorithms=[ALGORITHM])
+        if payload.get("type") != "reset":
+            raise HTTPException(status_code=400, detail="Token inválido.")
+        user_id = int(payload.get("sub"))
+    except JWTError:
+        raise HTTPException(status_code=400, detail="El link expiró o es inválido.")
+
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado.")
+
+    if len(data.new_password) < 6:
+        raise HTTPException(status_code=400, detail="La contraseña debe tener al menos 6 caracteres.")
+
+    user.password_hash = hash_password(data.new_password)
+    db.commit()
+    return {"message": "Contraseña actualizada correctamente."}
 
 
 @router.post("/login", response_model=Token)
