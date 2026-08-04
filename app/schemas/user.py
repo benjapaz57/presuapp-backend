@@ -21,6 +21,7 @@ class UserResponse(BaseModel):
     address: Optional[str] = None
     city: Optional[str] = None
     pdf_color: Optional[str] = "#4f46e5"
+    plan: str = "free"
     created_at: datetime
 
     model_config = {"from_attributes": True}
