@@ -1,6 +1,8 @@
 import os
 import io
 import uuid
+import cloudinary
+import cloudinary.uploader
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 from sqlalchemy.orm import Session
 from PIL import Image
@@ -11,11 +13,16 @@ from app.services.auth import hash_password, verify_password, create_access_toke
 
 router = APIRouter(prefix="/auth", tags=["Autenticación"])
 
-UPLOADS_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "uploads")
-os.makedirs(UPLOADS_DIR, exist_ok=True)
-
 ALLOWED_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp"}
 LOGO_SIZE = (200, 200)
+
+# Configurar Cloudinary
+cloudinary.config(
+    cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME"),
+    api_key=os.getenv("CLOUDINARY_API_KEY"),
+    api_secret=os.getenv("CLOUDINARY_API_SECRET"),
+    secure=True,
+)
 
 
 def _process_logo(content: bytes) -> bytes:
@@ -23,7 +30,6 @@ def _process_logo(content: bytes) -> bytes:
     img = Image.open(io.BytesIO(content))
     img.thumbnail(LOGO_SIZE, Image.LANCZOS)
     buf_out = io.BytesIO()
-    # Guardar en el formato original (mantiene fondo si lo tiene)
     fmt = img.format or "PNG"
     if fmt not in ("PNG", "JPEG", "WEBP"):
         fmt = "PNG"
@@ -90,26 +96,35 @@ async def upload_logo(
     if len(content) > 5 * 1024 * 1024:
         raise HTTPException(status_code=400, detail="El archivo no puede superar 5MB.")
 
-    # Procesar: remover fondo + resize 200x200
     try:
         processed = _process_logo(content)
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"No se pudo procesar la imagen: {str(e)}")
 
-    filename = f"{current_user.id}_{uuid.uuid4().hex}{ext}"
-    file_path = os.path.join(UPLOADS_DIR, filename)
-    with open(file_path, "wb") as f:
-        f.write(processed)
+    # Eliminar logo anterior de Cloudinary si existe
+    if current_user.logo_url and "cloudinary.com" in current_user.logo_url:
+        try:
+            # Extraer el public_id (presuapp/logos/user_{id})
+            public_id = f"presuapp/logos/user_{current_user.id}"
+            cloudinary.uploader.destroy(public_id)
+        except Exception:
+            pass  # Si falla el borrado, continuamos igual
 
-    # Eliminar logo anterior
-    if current_user.logo_url and "/uploads/" in current_user.logo_url:
-        old_filename = current_user.logo_url.split("/uploads/")[-1]
-        old_path = os.path.join(UPLOADS_DIR, old_filename)
-        if os.path.exists(old_path):
-            os.remove(old_path)
+    # Subir a Cloudinary
+    try:
+        public_id = f"presuapp/logos/user_{current_user.id}"
+        result = cloudinary.uploader.upload(
+            io.BytesIO(processed),
+            public_id=public_id,
+            overwrite=True,
+            resource_type="image",
+            format=ext.lstrip(".") if ext != ".jpg" else "jpg",
+        )
+        logo_url = result["secure_url"]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al subir el logo: {str(e)}")
 
-    base_url = os.getenv("BASE_URL", "http://localhost:8000")
-    current_user.logo_url = f"{base_url}/uploads/{filename}"
+    current_user.logo_url = logo_url
     db.commit()
     db.refresh(current_user)
     return current_user

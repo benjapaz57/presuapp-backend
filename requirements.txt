@@ -9,3 +9,4 @@ python-multipart==0.0.12
 pillow==10.4.0
 fpdf2==2.7.9
 aiofiles==23.2.1
+cloudinary==1.41.0
