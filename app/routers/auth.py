@@ -4,7 +4,11 @@ import uuid
 from datetime import timedelta
 import cloudinary
 import cloudinary.uploader
-from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, Request, status, UploadFile, File
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+
+limiter = Limiter(key_func=get_remote_address)
 from pydantic import BaseModel
 from jose import JWTError, jwt
 from sqlalchemy.orm import Session
@@ -52,7 +56,8 @@ def _process_logo(content: bytes) -> bytes:
 
 
 @router.post("/register", response_model=UserResponse, status_code=201)
-def register(data: UserCreate, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+def register(request: Request, data: UserCreate, db: Session = Depends(get_db)):
     existing = db.query(User).filter(User.email == data.email).first()
     if existing:
         raise HTTPException(status_code=400, detail="El email ya está registrado")
@@ -72,7 +77,8 @@ def register(data: UserCreate, db: Session = Depends(get_db)):
 
 
 @router.post("/forgot-password", status_code=200)
-def forgot_password(data: ForgotPasswordRequest, db: Session = Depends(get_db)):
+@limiter.limit("3/minute")
+def forgot_password(request: Request, data: ForgotPasswordRequest, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email == data.email).first()
     # Siempre respondemos OK para no revelar si el email existe o no
     if user:
@@ -108,7 +114,8 @@ def reset_password(data: ResetPasswordRequest, db: Session = Depends(get_db)):
 
 
 @router.post("/login", response_model=Token)
-def login(data: LoginRequest, db: Session = Depends(get_db)):
+@limiter.limit("10/minute")
+def login(request: Request, data: LoginRequest, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email == data.email).first()
     if not user or not verify_password(data.password, user.password_hash):
         raise HTTPException(

@@ -11,3 +11,4 @@ fpdf2==2.7.9
 aiofiles==23.2.1
 cloudinary==1.41.0
 resend==2.4.0
+slowapi==0.1.9
