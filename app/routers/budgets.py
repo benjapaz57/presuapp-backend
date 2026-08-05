@@ -36,19 +36,17 @@ PLAN_LIMITS = {
 
 @router.post("/", response_model=BudgetResponse, status_code=201)
 def create_budget(data: BudgetCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    # Validar límite de plan
-    limit = PLAN_LIMITS.get(current_user.plan, 3)
-    if limit is not None:
-        count = db.query(Budget).filter(Budget.user_id == current_user.id).count()
-        if count >= limit:
-            raise HTTPException(
-                status_code=403,
-                detail=f"PLAN_LIMIT_REACHED|Tu plan gratuito permite hasta {limit} presupuestos. Actualizá a Pro para continuar."
-            )
-
-    # Número de presupuesto autoincremental por usuario
+    # Número de presupuesto autoincremental por usuario (nunca baja aunque se borren)
     last = db.query(Budget).filter(Budget.user_id == current_user.id).order_by(Budget.number.desc()).first()
     number = (last.number + 1) if last else 1
+
+    # Validar límite de plan usando el número total histórico, no el count actual
+    limit = PLAN_LIMITS.get(current_user.plan, 3)
+    if limit is not None and number > limit:
+        raise HTTPException(
+            status_code=403,
+            detail=f"PLAN_LIMIT_REACHED|Tu plan gratuito permite hasta {limit} presupuestos. Actualizá a Pro para continuar."
+        )
 
     subtotal, discount_amount, tax_amount, total = _calculate_totals(
         data.items, data.discount_percent, data.tax_percent
