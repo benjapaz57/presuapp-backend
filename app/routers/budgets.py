@@ -1,3 +1,4 @@
+import base64
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import Response
 from sqlalchemy.orm import Session
@@ -9,6 +10,7 @@ from app.models.client import Client
 from app.schemas.budget import BudgetCreate, BudgetUpdate, BudgetResponse
 from app.services.auth import get_current_user
 from app.services.pdf_generator import generate_budget_pdf
+from app.services.email import send_budget_to_client
 
 router = APIRouter(prefix="/budgets", tags=["Presupuestos"])
 
@@ -131,3 +133,34 @@ def download_budget_pdf(budget_id: int, db: Session = Depends(get_db), current_u
         media_type="application/pdf",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'}
     )
+
+
+@router.post("/{budget_id}/send-email", status_code=200)
+def send_budget_email(budget_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    budget = db.query(Budget).filter(Budget.id == budget_id, Budget.user_id == current_user.id).first()
+    if not budget:
+        raise HTTPException(status_code=404, detail="Presupuesto no encontrado")
+
+    client = db.query(Client).filter(Client.id == budget.client_id).first() if budget.client_id else None
+
+    if not client or not client.email:
+        raise HTTPException(status_code=400, detail="El cliente no tiene email registrado.")
+
+    pdf_bytes = generate_budget_pdf(budget, current_user, client)
+    filename = f"presupuesto-{budget.number:04d}.pdf"
+    pdf_b64 = base64.b64encode(pdf_bytes).decode()
+
+    ok = send_budget_to_client(
+        to_email=client.email,
+        client_name=client.name,
+        sender_name=current_user.business_name or current_user.name,
+        budget_number=budget.number,
+        total=budget.total,
+        pdf_b64=pdf_b64,
+        filename=filename,
+    )
+
+    if not ok:
+        raise HTTPException(status_code=500, detail="Error al enviar el email.")
+
+    return {"message": f"Presupuesto enviado a {client.email}"}
