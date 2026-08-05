@@ -126,9 +126,13 @@ def login(request: Request, data: LoginRequest, db: Session = Depends(get_db)):
     return {"access_token": token, "token_type": "bearer"}
 
 
+ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "")
+
 @router.get("/me", response_model=UserResponse)
 def me(current_user: User = Depends(get_current_user)):
-    return current_user
+    data = UserResponse.model_validate(current_user)
+    data.is_admin = bool(ADMIN_EMAIL and current_user.email == ADMIN_EMAIL)
+    return data
 
 
 @router.put("/profile", response_model=UserResponse)

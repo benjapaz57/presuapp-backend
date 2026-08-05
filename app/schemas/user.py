@@ -22,6 +22,7 @@ class UserResponse(BaseModel):
     city: Optional[str] = None
     pdf_color: Optional[str] = "#4f46e5"
     plan: str = "free"
+    is_admin: bool = False
     created_at: datetime
 
     model_config = {"from_attributes": True}

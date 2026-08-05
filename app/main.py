@@ -12,6 +12,7 @@ from app.routers import items as items_router
 from app.routers import clients as clients_router
 from app.routers import budgets as budgets_router
 from app.routers import subscriptions as subscriptions_router
+from app.routers import admin as admin_router
 
 # Importar todos los modelos para que SQLAlchemy los registre
 import app.models  # noqa: F401
@@ -56,6 +57,7 @@ app.include_router(items_router.router)
 app.include_router(clients_router.router)
 app.include_router(budgets_router.router)
 app.include_router(subscriptions_router.router)
+app.include_router(admin_router.router)
 
 
 @app.get("/")
