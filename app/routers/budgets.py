@@ -135,6 +135,9 @@ def download_budget_pdf(budget_id: int, db: Session = Depends(get_db), current_u
 
 @router.post("/{budget_id}/send-email", status_code=200)
 def send_budget_email(budget_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    if current_user.plan != "pro":
+        raise HTTPException(status_code=403, detail="PRO_REQUIRED|El envío por email al cliente es una función del plan Pro.")
+
     budget = db.query(Budget).filter(Budget.id == budget_id, Budget.user_id == current_user.id).first()
     if not budget:
         raise HTTPException(status_code=404, detail="Presupuesto no encontrado")

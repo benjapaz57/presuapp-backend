@@ -133,7 +133,11 @@ def me(current_user: User = Depends(get_current_user)):
 
 @router.put("/profile", response_model=UserResponse)
 def update_profile(data: UserUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    for field, value in data.model_dump(exclude_unset=True).items():
+    update_data = data.model_dump(exclude_unset=True)
+    # Color personalizado es feature Pro — free users no pueden cambiarlo
+    if current_user.plan != "pro":
+        update_data.pop("pdf_color", None)
+    for field, value in update_data.items():
         setattr(current_user, field, value)
     db.commit()
     db.refresh(current_user)
@@ -146,6 +150,9 @@ async def upload_logo(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    if current_user.plan != "pro":
+        raise HTTPException(status_code=403, detail="PRO_REQUIRED|El logo personalizado es una función del plan Pro.")
+
     ext = os.path.splitext(file.filename or "")[1].lower()
     if ext not in ALLOWED_EXTENSIONS:
         raise HTTPException(status_code=400, detail="Formato no permitido. Usá PNG, JPG o WEBP.")

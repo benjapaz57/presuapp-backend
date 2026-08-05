@@ -71,7 +71,9 @@ class PresuPDF(FPDF):
 
 
 def generate_budget_pdf(budget, user, client) -> bytes:
-    PRIMARY = _hex_to_rgb(user.pdf_color or "#4f46e5")
+    is_pro = getattr(user, "plan", "free") == "pro"
+    # Free: color genérico, sin logo. Pro: color y logo propios.
+    PRIMARY = _hex_to_rgb(user.pdf_color if is_pro else "#4f46e5")
     WHITE      = (255, 255, 255)
     GRAY_DARK  = (31, 41, 55)
     GRAY_MID   = (107, 114, 128)
@@ -95,9 +97,9 @@ def generate_budget_pdf(budget, user, client) -> bytes:
     pdf.set_fill_color(*PRIMARY)
     pdf.rect(0, 0, 210, HDR_H, "F")
 
-    # Logo — izquierda, máximo 42×28mm manteniendo proporción
+    # Logo — izquierda, máximo 42×28mm manteniendo proporción (solo Pro)
     LOGO_MAX_W, LOGO_MAX_H = 42, 28
-    if user.logo_url:
+    if is_pro and user.logo_url:
         logo_path = _download_logo(user.logo_url)
         if logo_path:
             try:
