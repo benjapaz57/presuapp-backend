@@ -9,7 +9,7 @@ from app.services.auth import get_current_user
 router = APIRouter(prefix="/subscriptions", tags=["Suscripciones"])
 
 MP_ACCESS_TOKEN = os.getenv("MP_ACCESS_TOKEN", "")
-FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:4200")
+FRONTEND_URL = os.getenv("FRONTEND_URL", "https://presuapp-frontend.vercel.app")
 PRO_AMOUNT = float(os.getenv("PRO_AMOUNT", "2000"))
 MP_WEBHOOK_SECRET = os.getenv("MP_WEBHOOK_SECRET", "")
 
@@ -42,10 +42,16 @@ def create_checkout(
         "status": "pending",
     }
 
-    result = sdk.preapproval().create(preapproval_data)
+    try:
+        result = sdk.preapproval().create(preapproval_data)
+    except Exception as e:
+        print(f"[MP] Excepción al crear preapproval: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+    print(f"[MP] status={result['status']} response={result.get('response')}")
 
     if result["status"] not in (200, 201):
-        raise HTTPException(status_code=500, detail="Error al crear la suscripción en MercadoPago.")
+        raise HTTPException(status_code=500, detail=f"MP error {result['status']}: {result.get('response')}")
 
     data = result["response"]
 
