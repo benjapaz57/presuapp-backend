@@ -29,6 +29,8 @@ class BudgetCreate(BaseModel):
     discount_percent: float = 0.0
     tax_percent: float = 0.0
     notes: Optional[str] = None
+    payment_method: Optional[str] = None
+    work_timeline: Optional[str] = None
     valid_until: Optional[datetime] = None
     items: List[BudgetItemCreate] = []
 
@@ -58,6 +60,8 @@ class BudgetResponse(BaseModel):
     tax_amount: float
     total: float
     notes: Optional[str] = None
+    payment_method: Optional[str] = None
+    work_timeline: Optional[str] = None
     valid_until: Optional[datetime] = None
     created_at: datetime
     updated_at: Optional[datetime] = None

@@ -17,6 +17,8 @@ class User(Base):
     address = Column(String, nullable=True)
     city = Column(String, nullable=True)
     pdf_color = Column(String, nullable=True, default="#4f46e5")
+    pdf_header_text_color = Column(String, nullable=True, default="#ffffff")
+    pdf_logo_size = Column(String, nullable=True, default="medium")
     plan = Column(String, nullable=False, default="free")
     mp_subscription_id = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())

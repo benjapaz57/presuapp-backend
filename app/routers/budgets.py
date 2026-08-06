@@ -67,6 +67,8 @@ def create_budget(data: BudgetCreate, db: Session = Depends(get_db), current_use
         subtotal=subtotal,
         total=total,
         notes=data.notes,
+        payment_method=data.payment_method,
+        work_timeline=data.work_timeline,
         valid_until=data.valid_until,
     )
     db.add(budget)

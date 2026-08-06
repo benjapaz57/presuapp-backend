@@ -21,6 +21,8 @@ class UserResponse(BaseModel):
     address: Optional[str] = None
     city: Optional[str] = None
     pdf_color: Optional[str] = "#4f46e5"
+    pdf_header_text_color: Optional[str] = "#ffffff"
+    pdf_logo_size: Optional[str] = "medium"
     plan: str = "free"
     is_admin: bool = False
     created_at: datetime
@@ -50,3 +52,5 @@ class UserUpdate(BaseModel):
     address: Optional[str] = None
     city: Optional[str] = None
     pdf_color: Optional[str] = None
+    pdf_header_text_color: Optional[str] = None
+    pdf_logo_size: Optional[str] = None

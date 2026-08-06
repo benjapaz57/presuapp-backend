@@ -75,11 +75,14 @@ class PresuPDF(FPDF):
 def generate_budget_pdf(budget, user, client) -> bytes:
     is_pro = getattr(user, "plan", "free") == "pro"
     # Free: color genérico, sin logo. Pro: color y logo propios.
-    PRIMARY = _hex_to_rgb(user.pdf_color if is_pro else "#4f46e5")
-    WHITE      = (255, 255, 255)
+    PRIMARY    = _hex_to_rgb(user.pdf_color if is_pro else "#4f46e5")
+    HDR_TEXT   = _hex_to_rgb(user.pdf_header_text_color if is_pro else "#ffffff")
+    LOGO_SIZES = {"small": (24, 16), "medium": (38, 25), "large": (52, 35)}
+    LOGO_MAX_W, LOGO_MAX_H = LOGO_SIZES.get(getattr(user, "pdf_logo_size", "medium") if is_pro else "medium", (38, 25))
     GRAY_DARK  = (31, 41, 55)
     GRAY_MID   = (107, 114, 128)
     GRAY_LIGHT = (243, 244, 246)
+    WHITE      = (255, 255, 255)  # para fondos
 
     pdf = PresuPDF(font="Helvetica", primary=PRIMARY, user_name=user.name)
     pdf.set_margins(20, 20, 20)
@@ -98,9 +101,6 @@ def generate_budget_pdf(budget, user, client) -> bytes:
     HDR_H = 38
     pdf.set_fill_color(*PRIMARY)
     pdf.rect(0, 0, 210, HDR_H, "F")
-
-    # Logo — izquierda, máximo 42×28mm manteniendo proporción (solo Pro)
-    LOGO_MAX_W, LOGO_MAX_H = 42, 28
     if is_pro and user.logo_url:
         logo_path = _download_logo(user.logo_url)
         if logo_path:
@@ -127,8 +127,7 @@ def generate_budget_pdf(budget, user, client) -> bytes:
                 logo_path = None
 
     # Info del negocio — derecha, alineada a la derecha del header
-    # Usamos x=20, ancho=170 con align="R" para pegar contra el margen derecho
-    pdf.set_text_color(*WHITE)
+    pdf.set_text_color(*HDR_TEXT)
     pdf.set_font(FONT, "B", 15)
     pdf.set_xy(20, 7)
     pdf.cell(170, 7, user.business_name or user.name, align="R", ln=True)
@@ -150,9 +149,7 @@ def generate_budget_pdf(budget, user, client) -> bytes:
     pdf.set_font(FONT, "", 8)
     pdf.set_text_color(*GRAY_MID)
     fecha = datetime.fromisoformat(str(budget.created_at)).strftime("%d/%m/%Y")
-    estado = STATUS_LABELS.get(budget.status, budget.status)
-    pdf.cell(100, 4.5, f"Fecha: {fecha}")
-    pdf.cell(0, 4.5, f"Estado: {estado}", ln=True)
+    pdf.cell(0, 4.5, f"Fecha: {fecha}", ln=True)
 
     if budget.valid_until:
         venc = datetime.fromisoformat(str(budget.valid_until)).strftime("%d/%m/%Y")
@@ -252,14 +249,24 @@ def generate_budget_pdf(budget, user, client) -> bytes:
     pdf.cell(35, 7, "TOTAL:", align="R")
     pdf.cell(35, 7, _format_currency(budget.total), align="R", ln=True)
 
-    # ── NOTAS ────────────────────────────────────────────────
-    if budget.notes:
+    # ── CONDICIONES Y DATOS ADICIONALES ──────────────────────
+    extras = []
+    if budget.payment_method: extras.append(("Forma de pago",    budget.payment_method))
+    if budget.work_timeline:  extras.append(("Plazos de trabajo", budget.work_timeline))
+    if budget.valid_until:
+        venc = datetime.fromisoformat(str(budget.valid_until)).strftime("%d/%m/%Y")
+        extras.append(("Validez", f"Hasta el {venc}"))
+    if budget.notes:          extras.append(("Notas y condiciones", budget.notes))
+
+    if extras:
         pdf.ln(4)
-        pdf.set_font(FONT, "B", 7.5)
         pdf.set_text_color(*GRAY_MID)
-        pdf.cell(0, 4.5, "Notas y condiciones:", ln=True)
-        pdf.set_font(FONT, "", 8)
-        pdf.multi_cell(0, 4.5, budget.notes)
+        for label, value in extras:
+            pdf.set_font(FONT, "B", 7.5)
+            pdf.cell(0, 4.5, f"{label}:", ln=True)
+            pdf.set_font(FONT, "", 8)
+            pdf.multi_cell(0, 4.5, str(value))
+            pdf.ln(1)
 
     # Limpieza logo temporal
     if logo_path and os.path.exists(logo_path):

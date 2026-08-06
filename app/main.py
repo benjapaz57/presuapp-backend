@@ -46,6 +46,22 @@ app.add_middleware(
 # Crear tablas automáticamente al iniciar
 Base.metadata.create_all(bind=engine)
 
+# Auto-migración: agrega columnas nuevas sin romper datos existentes (PostgreSQL IF NOT EXISTS)
+from sqlalchemy import text  # noqa: E402
+try:
+    with engine.connect() as _conn:
+        for _sql in [
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS pdf_header_text_color VARCHAR DEFAULT '#ffffff'",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS pdf_logo_size VARCHAR DEFAULT 'medium'",
+            "ALTER TABLE budgets ADD COLUMN IF NOT EXISTS payment_method TEXT",
+            "ALTER TABLE budgets ADD COLUMN IF NOT EXISTS work_timeline TEXT",
+        ]:
+            _conn.execute(text(_sql))
+        _conn.commit()
+    print("[DB] Auto-migración completada.", flush=True)
+except Exception as _e:
+    print(f"[DB] Auto-migración: {_e}", flush=True)
+
 # Archivos estáticos (logos subidos)
 UPLOADS_DIR = os.path.join(os.path.dirname(__file__), "..", "uploads")
 os.makedirs(UPLOADS_DIR, exist_ok=True)

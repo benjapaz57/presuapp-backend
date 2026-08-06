@@ -21,6 +21,8 @@ class Budget(Base):
     tax_amount = Column(Float, default=0.0)
     total = Column(Float, default=0.0)
     notes = Column(Text, nullable=True)
+    payment_method = Column(Text, nullable=True)
+    work_timeline = Column(Text, nullable=True)
     valid_until = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
