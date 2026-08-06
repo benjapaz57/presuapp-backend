@@ -62,9 +62,11 @@ class PresuPDF(FPDF):
         self._user_name = user_name
 
     def footer(self):
+        self.set_y(-14)  # siempre a 14mm del borde inferior
         self.set_draw_color(*self._primary)
         self.set_line_width(0.3)
         self.line(20, self.get_y(), 190, self.get_y())
+        self.ln(1)
         self.set_font(self._font, "I", 7)
         self.set_text_color(107, 114, 128)
         self.cell(0, 5, f"Generado por PresuApp  ·  {self._user_name}", align="C")
@@ -200,11 +202,22 @@ def generate_budget_pdf(budget, user, client) -> bytes:
     alt = False
     for item in budget.budget_items:
         pdf.set_fill_color(*(GRAY_LIGHT if alt else WHITE))
-        pdf.cell(col_desc,  5.5, f"  {item.description}",             fill=True)
-        pdf.cell(col_qty,   5.5, str(item.quantity),      align="C",  fill=True)
-        pdf.cell(col_price, 5.5, _format_currency(item.unit_price), align="R", fill=True)
-        pdf.cell(col_sub,   5.5, _format_currency(item.subtotal),   align="R", fill=True)
-        pdf.ln()
+
+        y_start = pdf.get_y()
+
+        # Descripción con wrap automático (multi_cell avanza Y)
+        pdf.set_x(20)
+        pdf.multi_cell(col_desc, 5.5, f"  {item.description}", fill=True)
+        y_end = pdf.get_y()
+        row_h = y_end - y_start
+
+        # Las otras celdas usan la altura total de la fila
+        pdf.set_xy(20 + col_desc, y_start)
+        pdf.cell(col_qty,   row_h, str(item.quantity),                align="C", fill=True)
+        pdf.cell(col_price, row_h, _format_currency(item.unit_price), align="R", fill=True)
+        pdf.cell(col_sub,   row_h, _format_currency(item.subtotal),   align="R", fill=True)
+        pdf.set_xy(20, y_end)
+
         alt = not alt
 
     # Línea separadora
