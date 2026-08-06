@@ -90,9 +90,20 @@ def list_all_budgets(db: Session = Depends(get_db), _=Depends(require_admin)):
 
 
 @router.delete("/budgets/{budget_id}", status_code=204)
-def delete_any_budget(budget_id: int, db: Session = Depends(get_db), _=Depends(require_admin)):
+def delete_any_budget(budget_id: int, db: Session = Depends(get_db), current_user: User = Depends(require_admin)):
     budget = db.query(Budget).filter(Budget.id == budget_id).first()
     if not budget:
         raise HTTPException(status_code=404, detail="Presupuesto no encontrado.")
     db.delete(budget)
+    db.commit()
+
+
+@router.delete("/users/{user_id}", status_code=204)
+def delete_user(user_id: int, db: Session = Depends(get_db), current_user: User = Depends(require_admin)):
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado.")
+    if user.email == current_user.email:
+        raise HTTPException(status_code=400, detail="No podés eliminar tu propio usuario.")
+    db.delete(user)
     db.commit()
