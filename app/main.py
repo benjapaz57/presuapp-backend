@@ -55,6 +55,7 @@ try:
             "ALTER TABLE users ADD COLUMN IF NOT EXISTS pdf_logo_size VARCHAR DEFAULT 'medium'",
             "ALTER TABLE budgets ADD COLUMN IF NOT EXISTS payment_method TEXT",
             "ALTER TABLE budgets ADD COLUMN IF NOT EXISTS work_timeline TEXT",
+            "ALTER TABLE budget_items ADD COLUMN IF NOT EXISTS unit VARCHAR DEFAULT ''",
         ]:
             _conn.execute(text(_sql))
         _conn.commit()

@@ -40,6 +40,7 @@ class BudgetItem(Base):
     item_id = Column(Integer, ForeignKey("items.id"), nullable=True)  # opcional: del banco de servicios
     description = Column(String, nullable=False)
     quantity = Column(Float, default=1.0)
+    unit = Column(String, nullable=True, default="")
     unit_price = Column(Float, nullable=False)
     subtotal = Column(Float, nullable=False)
 

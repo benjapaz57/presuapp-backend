@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from typing import Optional, List
 from datetime import datetime
 
@@ -7,6 +7,7 @@ class BudgetItemCreate(BaseModel):
     item_id: Optional[int] = None  # opcional: del banco de servicios
     description: str
     quantity: float = 1.0
+    unit: Optional[str] = None
     unit_price: float
 
 
@@ -16,6 +17,7 @@ class BudgetItemResponse(BaseModel):
     item_id: Optional[int] = None
     description: str
     quantity: float
+    unit: Optional[str] = None
     unit_price: float
     subtotal: float
 
@@ -33,6 +35,13 @@ class BudgetCreate(BaseModel):
     work_timeline: Optional[str] = None
     valid_until: Optional[datetime] = None
     items: List[BudgetItemCreate] = []
+
+    @field_validator("valid_until", mode="before")
+    @classmethod
+    def empty_str_to_none(cls, v):
+        if v == "" or v is None:
+            return None
+        return v
 
 
 class BudgetUpdate(BaseModel):

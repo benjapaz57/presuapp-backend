@@ -148,6 +148,24 @@ def update_profile(data: UserUpdate, db: Session = Depends(get_db), current_user
     return current_user
 
 
+@router.post("/cancel-pro", response_model=UserResponse)
+def cancel_pro(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """Cancela el plan Pro y vuelve al plan gratuito."""
+    if current_user.plan != "pro":
+        raise HTTPException(status_code=400, detail="Tu cuenta ya está en el plan gratuito.")
+    current_user.plan = "free"
+    db.commit()
+    db.refresh(current_user)
+    return current_user
+
+
+@router.delete("/me", status_code=204)
+def delete_account(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """Elimina la cuenta del usuario y todos sus datos."""
+    db.delete(current_user)
+    db.commit()
+
+
 @router.post("/upload-logo", response_model=UserResponse)
 async def upload_logo(
     file: UploadFile = File(...),

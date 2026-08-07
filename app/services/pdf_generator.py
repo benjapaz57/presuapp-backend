@@ -209,8 +209,11 @@ def generate_budget_pdf(budget, user, client) -> bytes:
         row_h = y_end - y_start
 
         # Las otras celdas usan la altura total de la fila
+        qty_label = f"{item.quantity:g}"
+        if getattr(item, "unit", None):
+            qty_label += f" {item.unit}"
         pdf.set_xy(20 + col_desc, y_start)
-        pdf.cell(col_qty,   row_h, str(item.quantity),                align="C", fill=True)
+        pdf.cell(col_qty,   row_h, qty_label,                         align="C", fill=True)
         pdf.cell(col_price, row_h, _format_currency(item.unit_price), align="R", fill=True)
         pdf.cell(col_sub,   row_h, _format_currency(item.subtotal),   align="R", fill=True)
         pdf.set_xy(20, y_end)

@@ -80,6 +80,7 @@ def create_budget(data: BudgetCreate, db: Session = Depends(get_db), current_use
             item_id=item_data.item_id,
             description=item_data.description,
             quantity=item_data.quantity,
+            unit=item_data.unit or "",
             unit_price=item_data.unit_price,
             subtotal=item_data.quantity * item_data.unit_price,
         )
