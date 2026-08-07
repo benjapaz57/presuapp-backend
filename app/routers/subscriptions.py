@@ -29,7 +29,7 @@ def create_checkout(
     sdk = get_sdk()
 
     preapproval_data = {
-        "reason": "PresuApp Pro — Plan mensual",
+        "reason": "Preformal Pro — Plan mensual",
         "payer_email": current_user.email,
         "auto_recurring": {
             "frequency": 1,

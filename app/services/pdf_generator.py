@@ -69,7 +69,7 @@ class PresuPDF(FPDF):
         self.ln(1)
         self.set_font(self._font, "I", 7)
         self.set_text_color(107, 114, 128)
-        self.cell(0, 5, f"Generado por PresuApp  ·  {self._user_name}", align="C")
+        self.cell(0, 5, f"Generado por Preformal  ·  {self._user_name}", align="C")
 
 
 def generate_budget_pdf(budget, user, client) -> bytes:

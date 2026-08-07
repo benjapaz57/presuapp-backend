@@ -4,7 +4,7 @@ import resend
 resend.api_key = os.getenv("RESEND_API_KEY", "")
 
 FROM_EMAIL = os.getenv("FROM_EMAIL", "onboarding@resend.dev")
-APP_NAME = "PresuApp"
+APP_NAME = "Preformal"
 
 
 def send_password_reset(to_email: str, reset_url: str) -> bool:

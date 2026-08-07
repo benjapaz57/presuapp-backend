@@ -21,8 +21,8 @@ import app.models  # noqa: F401
 limiter = Limiter(key_func=get_remote_address)
 
 app = FastAPI(
-    title="PresuApp API",
-    description="Backend para la aplicación de presupuestos",
+    title="Preformal API",
+    description="Backend para la aplicación de presupuestos Preformal",
     version="0.1.0"
 )
 
@@ -79,7 +79,7 @@ app.include_router(admin_router.router)
 
 @app.get("/")
 def root():
-    return {"message": "PresuApp API funcionando ✓"}
+    return {"message": "Preformal API funcionando ✓"}
 
 
 @app.get("/health")
